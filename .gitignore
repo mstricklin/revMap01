@@ -23,9 +23,9 @@ hs_err_pid*
 # generated files
 target/
 
-# the HSQLDB directory
+# athe HSQLDB directory
 graph/
-# the Neo4j directory
+# any Neo4j directory
 work/
 
 .idea

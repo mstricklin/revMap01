@@ -1,11 +1,10 @@
 package strickli;
 
-import com.google.common.base.Function;
 import lombok.Data;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.Closeable;
-import java.util.Map;
+import strickli.cache.Cache;
+import strickli.cache.Transactional;
 
 import static com.google.common.collect.Maps.newHashMap;
 
@@ -26,6 +25,11 @@ public class App {
         }
         log.info("");
         c.dump();
+
+        P p = new P("ppp");
+        p.doP();
+        log.info("P: {}", p);
+
     }
     // =================================
     static Cache.MyCacheLoader<Foo> f0 = new Cache.MyCacheLoader<Foo>() {
@@ -40,6 +44,27 @@ public class App {
     private static final class Foo {
         private final long i;
         private final String s;
+    }
+    // =================================
+    @ToString
+    static class P {
+        P(String p_) {
+            p = p_;
+            c = new C(p_);
+        }
+        String p;
+        C c;
+        void doP() {
+            log.info("P.p {}", p);
+        }
+
+        class C {
+            C(String c_) { c = c_; }
+            String c;
+            void doC() {
+                log.info("P.p {} C.c {}", p, c);
+            }
+        }
     }
 
 }

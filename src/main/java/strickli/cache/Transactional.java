@@ -1,7 +1,8 @@
 // CLASSIFICATION NOTICE: This file is UNCLASSIFIED
-package strickli;
+package strickli.cache;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 public interface Transactional {
     TransactionCloser prepare();
@@ -10,6 +11,7 @@ public interface Transactional {
     void forget();
 
     @Data(staticConstructor="of")
+    @EqualsAndHashCode(callSuper=false)
     class TransactionException extends Exception {
         TransactionException(String msg) {
             super(msg);
