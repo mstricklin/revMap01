@@ -28,4 +28,4 @@ graph/
 # any Neo4j directory
 work/
 
-.idea
+.idea/

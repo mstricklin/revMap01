@@ -1,17 +1,9 @@
 // CLASSIFICATION NOTICE: This file is UNCLASSIFIED
 package strickli.cache;
 
-import com.google.common.base.Predicates;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static com.google.common.collect.Lists.newLinkedList;
 
@@ -165,30 +157,32 @@ public class Cache implements Transactional {
 //    };
 
     // =================================
-    interface Dao<T> {
+    interface ElementDao<T> {
         void add(T t);
-        Element.XVertex get(long id);
+        T get(long id);
         void remove(long id);
         Iterable<T> list();
         Iterable<T> list(String key, Object value);
         void clear();
     }
     // =================================
-    class CacheDao<T extends Element.Keyed> implements Dao<T> {
+    class CacheDao<T extends Element.Keyed> implements ElementDao<T> {
         CacheDao(RevMap<T> cache_) {
             cache = cache_;
         }
         @Override
-        public void add(T v) {
-
+        public void add(T t) {
+            cache.add(t);
+            // queue action
         }
         @Override
-        public Element.XVertex get(long id) {
-            return null;
+        public T get(long id) {
+            return cache.read(id);
         }
         @Override
         public void remove(long id) {
-
+            cache.delete(id);
+            // queue action
         }
         @Override
         public Iterable<T> list() {
@@ -200,7 +194,7 @@ public class Cache implements Transactional {
         }
         @Override
         public void clear() {
-
+            cache.clear();
         }
         RevMap<T> cache;
 
