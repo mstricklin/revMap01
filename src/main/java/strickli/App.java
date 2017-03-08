@@ -1,10 +1,9 @@
 package strickli;
 
+import com.tinkerpop.blueprints.Vertex;
 import lombok.Data;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import strickli.cache.Cache;
-import strickli.cache.Transactional;
 
 import static com.google.common.collect.Maps.newHashMap;
 
@@ -13,32 +12,33 @@ public class App {
     public static void main( String[] args ) {
         log.info("Log msg");
 
-        Cache<Foo> c = Cache.of(f0);
-        c.create(17l, Foo.of(17l, "aaa 17"));
-        c.create(18l, Foo.of(18l, "aaa 18"));
-        Foo f = c.read(17l);
-        c.dump();
-        try (Transactional.TransactionCloser xit = c.prepare()) {
-            log.info("");
-            c.dump();
-//            c.rollback();
-        }
+        GraphDB g = GraphDB.of();
+        g.addVertex(null);
+        Vertex v1 = g.addVertex(null);
+        g.addVertex(null);
+        g.dump();
         log.info("");
-        c.dump();
+        g.removeVertex(v1);
+        g.dump();
 
-        P p = new P("ppp");
-        p.doP();
-        log.info("P: {}", p);
+//        Vertex v1a = g.getVertex(1L);
+//        log.info("v1: {}", v1a);
+//        g.dump();
+//        for (Vertex v: g.getVertices())
+//            log.info("vertex {}", v);
+
+        g.addEdge(null, null, null, "sam");
+        g.dump();
 
     }
     // =================================
-    static Cache.MyCacheLoader<Foo> f0 = new Cache.MyCacheLoader<Foo>() {
-        @Override
-        public Foo load(Long key) throws Exception {
-            log.info("making new Foo {}", key);
-            return Foo.of(key, "aaa"+Long.toString(key));
-        }
-    };
+//    static GraphCache.MyCacheLoader<Foo> f0 = new GraphCache.MyCacheLoader<Foo>() {
+//        @Override
+//        public Foo load(Long key) throws Exception {
+//            log.info("making new Foo {}", key);
+//            return Foo.of(key, "aaa"+Long.toString(key));
+//        }
+//    };
     // =================================
     @Data(staticConstructor="of")
     private static final class Foo {

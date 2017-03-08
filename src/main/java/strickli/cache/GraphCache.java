@@ -5,10 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 
-import static com.google.common.collect.Lists.newLinkedList;
 
 @Slf4j
-public class Cache implements Transactional {
+public class GraphCache implements Transactional {
     @Override
     public TransactionCloser prepare() {
         return null;
@@ -30,11 +29,11 @@ public class Cache implements Transactional {
 //        public abstract V load(Long key) throws Exception;
 //    }
 //    // =================================
-//    public static <V> Cache<V> of(MyCacheLoader<V> f) {
-//        return new Cache(f);
+//    public static <V> GraphCache<V> of(MyCacheLoader<V> f) {
+//        return new GraphCache(f);
 //    }
 //    // =================================
-//    private Cache(CacheLoader f) {
+//    private GraphCache(CacheLoader f) {
 //        cache = CacheBuilder.newBuilder()
 //                .maximumSize(1000)
 //                .build(f);
@@ -82,11 +81,11 @@ public class Cache implements Transactional {
 //    }
 //    // =================================
 //    public void dump() {
-//        log.info("========= Main Cache ===========");
+//        log.info("========= Main GraphCache ===========");
 //        for (Map.Entry<Long, V> e : cache.asMap().entrySet()) {
 //            log.info("{} => {}", e.getKey(), e.getValue());
 //        }
-//        log.info("========= Excursion Cache ===========");
+//        log.info("========= Excursion GraphCache ===========");
 //        for (Map.Entry<Long, V> e : revision.get().asMap().entrySet()) {
 //            log.info("{} => {}", e.getKey(), e.getValue());
 //        }
@@ -105,7 +104,7 @@ public class Cache implements Transactional {
 //            @Override
 //            public void close() { // synchronize?
 //                log.info("AutoCloser");
-//                Cache.this.forget();
+//                GraphCache.this.forget();
 //            }
 //        };
 //    }
@@ -158,77 +157,87 @@ public class Cache implements Transactional {
 
     // =================================
     interface ElementDao<T> {
-        void add(T t);
-        T get(long id);
-        void remove(long id);
+        void create(T t);
+        T read(long id);
+        void update(T t);
+        void delete(long id);
         Iterable<T> list();
         Iterable<T> list(String key, Object value);
         void clear();
     }
     // =================================
-    class CacheDao<T extends Element.Keyed> implements ElementDao<T> {
-        CacheDao(RevMap<T> cache_) {
-            cache = cache_;
+    public class CacheDao<T extends Keyed> implements ElementDao<T> {
+        CacheDao(GraphCache store_, RevMap<T> cache_) {
+            store = store_; cache = cache_;
         }
         @Override
-        public void add(T t) {
-            cache.add(t);
-            // queue action
+        public void create(T t) {
+            cache.create(t);
+            // TODO: queue action
         }
         @Override
-        public T get(long id) {
+        public T read(long id) {
+            log.info("CacheDao read {}", id);
             return cache.read(id);
         }
         @Override
-        public void remove(long id) {
+        public void update(T t) {
+            cache.update(t.getKey());
+            // TODO: queue action
+        }
+        @Override
+        public void delete(long id) {
             cache.delete(id);
-            // queue action
+            // TODO: queue action
         }
         @Override
         public Iterable<T> list() {
-            return Collections.emptyList();
+            return cache.list();
         }
         @Override
         public Iterable<T> list(String key, Object value) {
+            // TODO: implement
             return Collections.emptyList();
         }
         @Override
         public void clear() {
             cache.clear();
+            // TODO: queue action
         }
+        // =================================
+        GraphCache store;
         RevMap<T> cache;
-
     }
     // =================================
-    CacheDao<Element.XVertex> getV() {
-        return new CacheDao<>(vertexCache);
+    public void dump() {
+        log.info("========= Vertex GraphCache ===========");
+        vertexCache.dump();
+        log.info("========= Edge GraphCache =============");
+        edgeCache.dump();
+        log.info("==================================");
     }
     // =================================
-    public void addVertex(Element.XVertex v) {
-        vertexCache.add(v);
-        // queue action, if success
-    }
-    public Element.XVertex getVertex(long id) {
-        Element.XVertex v = vertexCache.read(id);
-        // queue action...? Not necessary on read
-        return v;
-    }
-    public void remove(long id) {
-        vertexCache.delete(id);
-        // queue action
-    }
+    RevMap<XVertex> vertexCache = RevMap.of(vertexLoader);
+    RevMap<XVertex> vertexPropertyCache;
+    RevMap<XEdge> edgeCache = RevMap.of(edgeLoader);
+    RevMap<XEdge> edgePropertyCache;
 
+    static RevMap.Loader<XVertex> vertexLoader = new RevMap.Loader<XVertex>() {
+        @Override
+        public XVertex load(Long key) throws Exception {
+            log.info("making new Vertex {}", key);
+            return XVertex.of(key);
+        }
+    };
+    static RevMap.Loader<XEdge> edgeLoader = new RevMap.Loader<XEdge>() {
+        @Override
+        public XEdge load(Long key) throws Exception {
+            log.info("making new Edge {}", key);
+            return XEdge.of(key, "edge-"+key);
+        }
+    };
 
-    //    RdbmsVertex add();
-//    RdbmsVertex get(long id);
-//    void remove(long id);
-//    Iterable<RdbmsVertex> list();
-//    Iterable<RdbmsVertex> list(String key, Object value);
-//    void clear();
-    // =================================
-    RevMap<Element.XVertex> vertexCache;
-    RevMap<Element.XVertex> vertexPropertyCache;
-    RevMap<Element.XEdge> edgeCache;
-    RevMap<Element.XEdge> edgePropertyCache;
+    public final CacheDao<XVertex> vertexDao = new CacheDao<>(this, vertexCache);
+    public final CacheDao<XEdge>   edgeDao   = new CacheDao<>(this, edgeCache);
 
 }
