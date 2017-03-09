@@ -33,6 +33,16 @@ public class RevMap<T extends Keyed> {
                 .maximumSize(1000)
                 .build(f);
     }
+    /*
+    C.reate
+    R.ead
+    U.pdate
+    D.elete
+    list
+    clear
+    size
+    dump
+     */
     // =================================
     public void create(T value) {
         log.info("put {} {}", value.getKey(), value);
@@ -61,7 +71,6 @@ public class RevMap<T extends Keyed> {
     }
     // =================================
     public T delete(Long key) {
-        // throw no-such? Consider locking row...
         log.info("remove {}", key);
         revision.get().invalidate(key);
         removed.get().add(key);
@@ -73,20 +82,20 @@ public class RevMap<T extends Keyed> {
     }
     // =================================
     public Iterable<T> list() {
+        // this only covers what's actually in the cache
         Map<Long, T> baseMap = Maps.filterKeys(revision.get().asMap(), not(in(removed.get())));
         Map<Long, T> revMap = Maps.filterKeys(baseline.asMap(), not(in(removed.get())));
         return Iterables.concat(baseMap.values(), revMap.values());
     }
     // =================================
     public void clear() {
-        // throw no-such? Consider locking row...
         removed.get().addAll( revision.get().asMap().keySet() );
         revision.get().invalidateAll();
         removed.get().addAll( baseline.asMap().keySet() );
     }
     // =================================
     public int size() {
-        // throw no-such? Consider locking row...
+        // this only covers what's actually in the cache
         Set<Long> keys = newHashSet( baseline.asMap().keySet() );
         keys.addAll( revision.get().asMap().keySet() );
         keys.removeAll( removed.get() );
@@ -106,13 +115,13 @@ public class RevMap<T extends Keyed> {
         for (Long k : removed.get()) {
             log.info("{}", k);
         }
-        Optional<T> o;
     }
     // =================================
     private final LoadingCache<Long, T> baseline;
 
     private final ReentrantLock storeLock = new ReentrantLock();
 
+    // need an eviction listener for the revision, mark the transaction as overflowed if anything is evicted
     private ThreadLocal<LoadingCache<Long, T>> revision = new ThreadLocal() {
         @Override
         protected LoadingCache<Long, T> initialValue() {
